@@ -242,6 +242,7 @@ public class BatchRefUpdate {
 	 * @param walk
 	 *            a RevWalk to parse tags in case the storage system wants to
 	 *            store them pre-peeled, a common performance optimization.
+	 * @param userId
 	 * @param update
 	 *            progress monitor to receive update status on.
 	 * @throws IOException
@@ -249,7 +250,7 @@ public class BatchRefUpdate {
 	 *             command status must be tested to determine if there is a
 	 *             partial failure, or a total failure.
 	 */
-	public void execute(RevWalk walk, ProgressMonitor update)
+	public void execute(RevWalk walk, long userId, ProgressMonitor update)
 			throws IOException {
 		update.beginTask(JGitText.get().updatingReferences, commands.size());
 		for (ReceiveCommand cmd : commands) {
@@ -267,7 +268,9 @@ public class BatchRefUpdate {
 					case CREATE:
 					case UPDATE:
 					case UPDATE_NONFASTFORWARD:
-						cmd.setResult(ru.update(walk));
+						final RefUpdate tru = RefUpdateTranslator
+								.translateRefUpdate(ru, userId);
+						cmd.setResult(tru.update(walk));
 						continue;
 					}
 				}

@@ -57,7 +57,7 @@ class ReceivePack extends TextBuiltin {
 	@Argument(index = 0, required = true, metaVar = "metaVar_directory", usage = "usage_RepositoryToReceiveInto")
 	File dstGitdir;
 
-	@Argument(index = 1, required = true)
+	@Argument(index = 1, required = true, metaVar = "metaVar_userId")
 	long userId;
 
 	@Override

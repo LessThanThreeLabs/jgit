@@ -66,7 +66,7 @@ public class RefUpdateTranslator {
 		final String targetRef;
 		if (originalRef.getName().startsWith("refs/heads/")) {
 			String output = RefUpdateTranslator.getOutputForCommand(
-					"store_pending_and_trigger_build.py", userId,
+					"store-pending-and-trigger-build", userId,
 					gitDir.getAbsolutePath(),
 					"supposed to be a commit message", originalRef.getName());
 			targetRef = output;
@@ -74,7 +74,7 @@ public class RefUpdateTranslator {
 			return new SymbolicRef(targetRef, originalRef);
 		} else {
 			String output = RefUpdateTranslator.getOutputForCommand(
-					"verify_repository_permissions.py", userId,
+					"verify-repository-permissions", userId,
 					gitDir.getAbsolutePath());
 			System.out.println(output);
 			return originalRef;

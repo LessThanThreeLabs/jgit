@@ -239,7 +239,7 @@ public abstract class BaseReceivePack {
 
 	/**
 	 * Create a new pack receive for an open repository.
-	 * 
+	 *
 	 * @param into
 	 *            the destination repository.
 	 * @param userId
@@ -1180,7 +1180,7 @@ public abstract class BaseReceivePack {
 		batch.setRefLogMessage("push", true);
 		batch.addCommand(toApply);
 		try {
-			batch.execute(walk, updating);
+			batch.execute(walk, userId, updating);
 		} catch (IOException err) {
 			for (ReceiveCommand cmd : toApply) {
 				if (cmd.getResult() == Result.NOT_ATTEMPTED)
