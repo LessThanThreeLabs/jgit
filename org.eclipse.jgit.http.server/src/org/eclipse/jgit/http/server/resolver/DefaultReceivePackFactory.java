@@ -106,7 +106,7 @@ public class DefaultReceivePackFactory implements
 
 	private ReceivePack createFor(final HttpServletRequest req,
 			final Repository db, final String user) {
-		final ReceivePack rp = new ReceivePack(db);
+		final ReceivePack rp = new ReceivePack(db, -1);
 		rp.setRefLogIdent(toPersonIdent(req, user));
 		return rp;
 	}
