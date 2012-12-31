@@ -57,6 +57,9 @@ class ReceivePack extends TextBuiltin {
 	@Argument(index = 0, required = true, metaVar = "metaVar_directory", usage = "usage_RepositoryToReceiveInto")
 	File dstGitdir;
 
+	@Argument(index = 1, required = true)
+	long userId;
+
 	@Override
 	protected final boolean requiresRepository() {
 		return false;
@@ -74,7 +77,7 @@ class ReceivePack extends TextBuiltin {
 					dstGitdir.getPath()));
 		}
 
-		rp = new org.eclipse.jgit.transport.ReceivePack(db);
+		rp = new org.eclipse.jgit.transport.ReceivePack(db, userId);
 		rp.receive(System.in, outs, System.err);
 	}
 }
