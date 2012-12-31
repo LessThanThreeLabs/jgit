@@ -72,12 +72,13 @@ public class ReceivePack extends BaseReceivePack {
 
 	/**
 	 * Create a new pack receive for an open repository.
-	 *
+	 * 
 	 * @param into
 	 *            the destination repository.
+	 * @param userId
 	 */
-	public ReceivePack(final Repository into) {
-		super(into);
+	public ReceivePack(final Repository into, final long userId) {
+		super(into, userId);
 		preReceive = PreReceiveHook.NULL;
 		postReceive = PostReceiveHook.NULL;
 	}

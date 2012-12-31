@@ -53,6 +53,7 @@ import org.eclipse.jgit.lib.AnyObjectId;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.RefUpdate;
+import org.eclipse.jgit.lib.RefUpdateTranslator;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevObject;
 import org.eclipse.jgit.revwalk.RevWalk;
@@ -333,7 +334,9 @@ public class ReceiveCommand {
 				ru.setExpectedOldObjectId(getOldId());
 				ru.setNewObjectId(getNewId());
 				ru.setRefLogMessage("push", true);
-				setResult(ru.update(rp.getRevWalk()));
+				final RefUpdate tru = RefUpdateTranslator.translateRefUpdate(
+						ru, rp.getUserId());
+				setResult(tru.update(rp.getRevWalk()));
 				break;
 			}
 		} catch (IOException err) {

@@ -124,7 +124,7 @@ public class Daemon {
 			public ReceivePack create(DaemonClient req, Repository db)
 					throws ServiceNotEnabledException,
 					ServiceNotAuthorizedException {
-				ReceivePack rp = new ReceivePack(db);
+				ReceivePack rp = new ReceivePack(db, -1);
 
 				InetAddress peer = req.getRemoteAddress();
 				String host = peer.getCanonicalHostName();

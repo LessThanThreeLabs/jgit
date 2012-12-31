@@ -234,14 +234,19 @@ public abstract class BaseReceivePack {
 	/** Git object size limit */
 	private long maxObjectSizeLimit;
 
+	/** Added for Koality */
+	private long userId;
+
 	/**
 	 * Create a new pack receive for an open repository.
-	 *
+	 * 
 	 * @param into
 	 *            the destination repository.
+	 * @param userId
 	 */
-	protected BaseReceivePack(final Repository into) {
+	protected BaseReceivePack(final Repository into, final long userId) {
 		db = into;
+		this.userId = userId;
 		walk = new RevWalk(db);
 
 		final ReceiveConfig cfg = db.getConfig().get(ReceiveConfig.KEY);
@@ -337,6 +342,11 @@ public abstract class BaseReceivePack {
 	/** @return the repository this receive completes into. */
 	public final Repository getRepository() {
 		return db;
+	}
+
+	/** @return the id of the calling user. */
+	public final long getUserId() {
+		return userId;
 	}
 
 	/** @return the RevWalk instance used by this connection. */

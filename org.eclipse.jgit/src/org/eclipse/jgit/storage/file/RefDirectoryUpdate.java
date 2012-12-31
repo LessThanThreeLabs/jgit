@@ -53,12 +53,16 @@ import org.eclipse.jgit.lib.RefUpdate;
 import org.eclipse.jgit.lib.Repository;
 
 /** Updates any reference stored by {@link RefDirectory}. */
-class RefDirectoryUpdate extends RefUpdate {
+public class RefDirectoryUpdate extends RefUpdate {
 	private final RefDirectory database;
 
 	private LockFile lock;
 
-	RefDirectoryUpdate(final RefDirectory r, final Ref ref) {
+	/**
+	 * @param r
+	 * @param ref
+	 */
+	public RefDirectoryUpdate(final RefDirectory r, final Ref ref) {
 		super(ref);
 		database = r;
 	}

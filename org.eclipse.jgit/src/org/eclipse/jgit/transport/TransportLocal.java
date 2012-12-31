@@ -144,7 +144,7 @@ class TransportLocal extends Transport implements PackTransport {
 	}
 
 	ReceivePack createReceivePack(final Repository dst) {
-		return new ReceivePack(dst);
+		return new ReceivePack(dst, -1);
 	}
 
 	@Override
