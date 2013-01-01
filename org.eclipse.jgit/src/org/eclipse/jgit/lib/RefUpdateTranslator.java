@@ -83,7 +83,8 @@ public class RefUpdateTranslator {
 					"verify-repository-permissions", userId,
 					gitDir.getAbsolutePath());
 			if (originalRef.getName().startsWith("refs/force/")) {
-				targetRef = originalRef.getName().substring(
+				targetRef = "refs/heads/"
+						+ originalRef.getName().substring(
 						"refs/force/".length());
 				return new ObjectIdRef.Unpeeled(Storage.NEW, targetRef,
 						originalRef.getObjectId());
