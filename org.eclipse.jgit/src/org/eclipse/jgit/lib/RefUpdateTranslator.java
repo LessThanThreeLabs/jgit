@@ -7,6 +7,7 @@ import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
+import org.eclipse.jgit.lib.Ref.Storage;
 import org.eclipse.jgit.storage.file.RefDirectory;
 import org.eclipse.jgit.storage.file.RefDirectoryUpdate;
 
@@ -74,11 +75,18 @@ public class RefUpdateTranslator {
 					gitDir.getAbsolutePath(),
 					"supposed to be a commit message", originalRef.getName());
 			targetRef = output;
-			return new SymbolicRef(targetRef, originalRef);
+			return new ObjectIdRef.Unpeeled(Storage.NEW, targetRef,
+					originalRef.getObjectId());
 		} else {
 			String output = RefUpdateTranslator.getOutputForCommand(
 					"verify-repository-permissions", userId,
 					gitDir.getAbsolutePath());
+			if (originalRef.getName().startsWith("refs/force/")) {
+				targetRef = originalRef.getName().substring(
+						"refs/force/".length());
+				return new ObjectIdRef.Unpeeled(Storage.NEW, targetRef,
+						originalRef.getObjectId());
+			}
 			return originalRef;
 		}
 	}
