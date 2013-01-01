@@ -1,13 +1,14 @@
 package org.eclipse.jgit.lib;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
+import org.eclipse.jgit.errors.IncorrectObjectTypeException;
+import org.eclipse.jgit.errors.MissingObjectException;
 import org.eclipse.jgit.lib.Ref.Storage;
+import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.storage.file.RefDirectory;
 import org.eclipse.jgit.storage.file.RefDirectoryUpdate;
 
@@ -28,26 +29,20 @@ public class RefUpdateTranslator {
 			try {
 				RefDirectory refDirectory = (RefDirectory) RefUpdateTranslator
 						.getRefDatabase(refUpdate);
-				Field directory = refDirectory.getClass().getDeclaredField(
-						"gitDir");
-				directory.setAccessible(true);
+				Method getRepository = refDirectory.getClass().getDeclaredMethod("getRepository");
+				getRepository.setAccessible(true);
+				Repository repository = (Repository) getRepository
+						.invoke(refDirectory);
 				Ref ref = RefUpdateTranslator.translateRef(refUpdate.getRef(),
-						userId, (File) directory.get(refDirectory));
+						userId, repository);
 				RefDirectoryUpdate newRefUpdate = new RefDirectoryUpdate(
 						refDirectory, ref);
 				newRefUpdate.setNewObjectId(refUpdate.getNewObjectId());
 				newRefUpdate.setForceUpdate(true);
 				return newRefUpdate;
-			} catch (IllegalArgumentException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (IllegalAccessException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (SecurityException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (NoSuchFieldException e) {
+			} catch (RuntimeException e) {
+				throw e;
+			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
@@ -67,25 +62,29 @@ public class RefUpdateTranslator {
 		}
 	}
 
-	private static Ref translateRef(Ref originalRef, long userId, File gitDir) {
+	private static Ref translateRef(Ref originalRef, long userId,
+			Repository repository) throws MissingObjectException,
+			IncorrectObjectTypeException, IOException {
 		// TODO: Shell out to python here
 		final String targetRef;
 		if (originalRef.getName().startsWith("refs/heads/")) {
+			String commitMessage = new RevWalk(repository).parseCommit(
+					originalRef.getObjectId()).getFullMessage();
 			String output = RefUpdateTranslator.getOutputForCommand(
-					"store-pending-and-trigger-build", userId,
-					gitDir.getAbsolutePath(),
-					"supposed to be a commit message", originalRef.getName());
+					"store-pending-and-trigger-build", userId, repository
+							.getDirectory().getAbsolutePath(), commitMessage,
+					originalRef.getName()
+							.substring("refs/heads/".length()));
 			targetRef = output;
 			return new ObjectIdRef.Unpeeled(Storage.NEW, targetRef,
 					originalRef.getObjectId());
 		} else {
-			String output = RefUpdateTranslator.getOutputForCommand(
-					"verify-repository-permissions", userId,
-					gitDir.getAbsolutePath());
+			RefUpdateTranslator.getOutputForCommand(
+					"verify-repository-permissions", userId, repository
+							.getDirectory().getAbsolutePath());
 			if (originalRef.getName().startsWith("refs/force/")) {
-				targetRef = "refs/heads/"
-						+ originalRef.getName().substring(
-						"refs/force/".length());
+				targetRef = originalRef.getName().replace("refs/force/",
+						"refs/heads/");
 				return new ObjectIdRef.Unpeeled(Storage.NEW, targetRef,
 						originalRef.getObjectId());
 			}
