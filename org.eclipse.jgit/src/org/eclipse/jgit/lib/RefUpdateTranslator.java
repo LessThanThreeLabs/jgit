@@ -36,6 +36,7 @@ public class RefUpdateTranslator {
 				RefDirectoryUpdate newRefUpdate = new RefDirectoryUpdate(
 						refDirectory, ref);
 				newRefUpdate.setNewObjectId(refUpdate.getNewObjectId());
+				newRefUpdate.setForceUpdate(true);
 				return newRefUpdate;
 			} catch (IllegalArgumentException e) {
 				// TODO Auto-generated catch block
