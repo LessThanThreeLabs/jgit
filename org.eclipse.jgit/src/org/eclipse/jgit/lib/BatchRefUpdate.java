@@ -238,6 +238,54 @@ public class BatchRefUpdate {
 	 * <p>
 	 * The default implementation of this method performs a sequential reference
 	 * update over each reference.
+	 * 
+	 * @param walk
+	 *            a RevWalk to parse tags in case the storage system wants to
+	 *            store them pre-peeled, a common performance optimization.
+	 * @param update
+	 *            progress monitor to receive update status on.
+	 * @throws IOException
+	 *             the database is unable to accept the update. Individual
+	 *             command status must be tested to determine if there is a
+	 *             partial failure, or a total failure.
+	 */
+	public void execute(RevWalk walk, ProgressMonitor update)
+			throws IOException {
+		update.beginTask(JGitText.get().updatingReferences, commands.size());
+		for (ReceiveCommand cmd : commands) {
+			try {
+				update.update(1);
+
+				if (cmd.getResult() == NOT_ATTEMPTED) {
+					cmd.updateType(walk);
+					RefUpdate ru = newUpdate(cmd);
+					switch (cmd.getType()) {
+					case DELETE:
+						cmd.setResult(ru.delete(walk));
+						continue;
+
+					case CREATE:
+					case UPDATE:
+					case UPDATE_NONFASTFORWARD:
+						cmd.setResult(ru.update(walk));
+						continue;
+					}
+				}
+			} catch (IOException err) {
+				cmd.setResult(
+						REJECTED_OTHER_REASON,
+						MessageFormat.format(JGitText.get().lockError,
+								err.getMessage()));
+			}
+		}
+		update.endTask();
+	}
+
+	/**
+	 * Execute this batch update.
+	 * <p>
+	 * The default implementation of this method performs a sequential reference
+	 * update over each reference.
 	 *
 	 * @param walk
 	 *            a RevWalk to parse tags in case the storage system wants to
