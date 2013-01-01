@@ -32,7 +32,10 @@ public class RefUpdateTranslator {
 				directory.setAccessible(true);
 				Ref ref = RefUpdateTranslator.translateRef(refUpdate.getRef(),
 						userId, (File) directory.get(refDirectory));
-				return new RefDirectoryUpdate(refDirectory, ref);
+				RefDirectoryUpdate newRefUpdate = new RefDirectoryUpdate(
+						refDirectory, ref);
+				newRefUpdate.setNewObjectId(refUpdate.getNewObjectId());
+				return newRefUpdate;
 			} catch (IllegalArgumentException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -57,6 +60,7 @@ public class RefUpdateTranslator {
 			getRefDatabase.setAccessible(true);
 			return (RefDatabase) getRefDatabase.invoke(refUpdate);
 		} catch (Exception e) {
+			e.printStackTrace();
 			return null;
 		}
 	}
