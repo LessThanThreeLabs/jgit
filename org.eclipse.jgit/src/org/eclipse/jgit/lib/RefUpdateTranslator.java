@@ -74,13 +74,11 @@ public class RefUpdateTranslator {
 					gitDir.getAbsolutePath(),
 					"supposed to be a commit message", originalRef.getName());
 			targetRef = output;
-			System.out.println(targetRef);
 			return new SymbolicRef(targetRef, originalRef);
 		} else {
 			String output = RefUpdateTranslator.getOutputForCommand(
 					"verify-repository-permissions", userId,
 					gitDir.getAbsolutePath());
-			System.out.println(output);
 			return originalRef;
 		}
 	}
