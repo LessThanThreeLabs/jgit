@@ -38,7 +38,7 @@ public class RefUpdateTranslator {
 				RefDirectoryUpdate newRefUpdate = new RefDirectoryUpdate(
 						refDirectory, ref);
 				newRefUpdate.setNewObjectId(refUpdate.getNewObjectId());
-				newRefUpdate.setForceUpdate(true);
+				//newRefUpdate.setForceUpdate(true);
 				return newRefUpdate;
 			} catch (RuntimeException e) {
 				throw e;
