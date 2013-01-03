@@ -1187,6 +1187,11 @@ public abstract class BaseReceivePack {
 					cmd.reject(err);
 			}
 		}
+		/* Update to include all modified commands */
+		List<ReceiveCommand> newCommands = batch.getCommands();
+		for (int i = 0; i < toApply.size(); i++) {
+			commands.set(commands.indexOf(toApply.get(i)), newCommands.get(i));
+		}
 	}
 
 	/**
