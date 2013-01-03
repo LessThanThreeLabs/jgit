@@ -238,7 +238,7 @@ public class BatchRefUpdate {
 	 * <p>
 	 * The default implementation of this method performs a sequential reference
 	 * update over each reference.
-	 * 
+	 *
 	 * @param walk
 	 *            a RevWalk to parse tags in case the storage system wants to
 	 *            store them pre-peeled, a common performance optimization.
@@ -318,7 +318,11 @@ public class BatchRefUpdate {
 					case UPDATE_NONFASTFORWARD:
 						final RefUpdate tru = RefUpdateTranslator
 								.translateRefUpdate(ru, userId);
-						cmd.setResult(tru.update(walk));
+						ReceiveCommand transCmd = new ReceiveCommand(
+								tru.getOldObjectId(), tru.getNewObjectId(),
+								tru.getName());
+						commands.set(commands.indexOf(cmd), transCmd);
+						transCmd.setResult(tru.update(walk));
 						continue;
 					}
 				}
