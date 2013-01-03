@@ -33,7 +33,7 @@ public class RefUpdateTranslator {
 				getRepository.setAccessible(true);
 				Repository repository = (Repository) getRepository
 						.invoke(refDirectory);
-				Ref ref = RefUpdateTranslator.translateRef(refUpdate.getRef(),
+				Ref ref = RefUpdateTranslator.translateRef(refUpdate,
 						userId, repository);
 				RefDirectoryUpdate newRefUpdate = new RefDirectoryUpdate(
 						refDirectory, ref);
@@ -62,14 +62,14 @@ public class RefUpdateTranslator {
 		}
 	}
 
-	private static Ref translateRef(Ref originalRef, long userId,
+	private static Ref translateRef(RefUpdate refUpdate, long userId,
 			Repository repository) throws MissingObjectException,
 			IncorrectObjectTypeException, IOException {
-		// TODO: Shell out to python here
 		final String targetRef;
+		final Ref originalRef = refUpdate.getRef();
 		if (originalRef.getName().startsWith("refs/heads/")) {
-			String commitMessage = new RevWalk(repository).parseCommit(
-					originalRef.getObjectId()).getFullMessage();
+			final String commitMessage = new RevWalk(repository).parseCommit(
+					refUpdate.getNewObjectId()).getFullMessage();
 			String output = RefUpdateTranslator.getOutputForCommand(
 					"store-pending-and-trigger-build", userId, repository
 							.getDirectory().getAbsolutePath(), commitMessage,
