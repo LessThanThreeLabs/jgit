@@ -56,7 +56,6 @@ import java.util.Collections;
 import java.util.List;
 
 import org.eclipse.jgit.internal.JGitText;
-import org.eclipse.jgit.lib.RefUpdate.Result;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.transport.ReceiveCommand;
 
@@ -317,15 +316,17 @@ public class BatchRefUpdate {
 					case CREATE:
 					case UPDATE:
 					case UPDATE_NONFASTFORWARD:
-						final RefUpdate tru = RefUpdateTranslator
-								.translateRefUpdate(ru, userId);
-						Result result = tru.update(walk);
-						if (tru.getName().startsWith("refs/pending/")) {
+						if (ru.getName().startsWith("refs/heads/")) {
+							String target = ru.getName().substring(
+									"refs/heads/".length());
 							cmd.setResult(
 									ReceiveCommand.Result.REJECTED_OTHER_REASON,
-									"\033[0G [ queued ] ");
+									"\033[31m\033[1m" + "push to refs/for/"
+											+ target + " instead" + "\033[0m");
 						} else {
-							cmd.setResult(result);
+							final RefUpdate tru = RefUpdateTranslator
+									.translateRefUpdate(ru, userId);
+							cmd.setResult(tru.update(walk));
 						}
 						continue;
 					}

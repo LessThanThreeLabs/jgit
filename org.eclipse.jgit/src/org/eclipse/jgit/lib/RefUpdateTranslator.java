@@ -38,7 +38,9 @@ public class RefUpdateTranslator {
 				RefDirectoryUpdate newRefUpdate = new RefDirectoryUpdate(
 						refDirectory, ref);
 				newRefUpdate.setNewObjectId(refUpdate.getNewObjectId());
-				//newRefUpdate.setForceUpdate(true);
+				if (refUpdate.getRef().getName().startsWith("refs/force/")) {
+					newRefUpdate.setForceUpdate(true);
+				}
 				return newRefUpdate;
 			} catch (RuntimeException e) {
 				throw e;
@@ -67,14 +69,13 @@ public class RefUpdateTranslator {
 			IncorrectObjectTypeException, IOException {
 		final String targetRef;
 		final Ref originalRef = refUpdate.getRef();
-		if (originalRef.getName().startsWith("refs/heads/")) {
+		if (originalRef.getName().startsWith("refs/for/")) {
 			final String commitMessage = new RevWalk(repository).parseCommit(
 					refUpdate.getNewObjectId()).getFullMessage();
 			String output = RefUpdateTranslator.getOutputForCommand(
 					"store-pending-and-trigger-build", userId, repository
 							.getDirectory().getAbsolutePath(), commitMessage,
-					originalRef.getName()
-							.substring("refs/heads/".length()));
+					originalRef.getName().substring("refs/for/".length()));
 			targetRef = output;
 			return new ObjectIdRef.Unpeeled(Storage.NEW, targetRef,
 					originalRef.getObjectId());
