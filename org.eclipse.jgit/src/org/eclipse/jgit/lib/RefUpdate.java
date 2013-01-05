@@ -601,8 +601,12 @@ public abstract class RefUpdate {
 		if (getRefDatabase().isNameConflicting(getName()))
 			return Result.LOCK_FAILURE;
 		try {
+			ObjectId trueOldValue = oldValue;
 			if (!tryLock(true))
 				return Result.LOCK_FAILURE;
+			if (getRef().getName().startsWith("refs/pending/")) {
+				oldValue = trueOldValue; // Pending refs are uniquely identified
+			}
 			if (expValue != null) {
 				final ObjectId o;
 				o = oldValue != null ? oldValue : ObjectId.zeroId();
