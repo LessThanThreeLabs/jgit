@@ -67,26 +67,29 @@ public class RefUpdateTranslator {
 	private static Ref translateRef(RefUpdate refUpdate, long userId,
 			Repository repository) throws MissingObjectException,
 			IncorrectObjectTypeException, IOException {
-		final String targetRef;
+		final String newTargetRef;
 		final Ref originalRef = refUpdate.getRef();
 		if (originalRef.getName().startsWith("refs/for/")) {
 			final String commitMessage = new RevWalk(repository).parseCommit(
 					refUpdate.getNewObjectId()).getFullMessage();
+			String targetRef = originalRef.getName().substring("refs/for/".length());
 			String output = RefUpdateTranslator.getOutputForCommand(
 					"store-pending-and-trigger-build", userId, repository
 							.getDirectory().getAbsolutePath(), commitMessage,
-					originalRef.getName().substring("refs/for/".length()));
-			targetRef = output;
-			return new ObjectIdRef.Unpeeled(Storage.NEW, targetRef,
-					originalRef.getObjectId());
+					targetRef);
+			newTargetRef = output;
+			ObjectId realObjectId = repository
+					.getRef("refs/heads/" + targetRef).getObjectId();
+			return new ObjectIdRef.Unpeeled(Storage.NEW, newTargetRef,
+					realObjectId);
 		} else {
 			RefUpdateTranslator.getOutputForCommand(
 					"verify-repository-permissions", userId, repository
 							.getDirectory().getAbsolutePath());
 			if (originalRef.getName().startsWith("refs/force/")) {
-				targetRef = originalRef.getName().replace("refs/force/",
+				newTargetRef = originalRef.getName().replace("refs/force/",
 						"refs/heads/");
-				return new ObjectIdRef.Unpeeled(Storage.NEW, targetRef,
+				return new ObjectIdRef.Unpeeled(Storage.NEW, newTargetRef,
 						originalRef.getObjectId());
 			}
 			return originalRef;
