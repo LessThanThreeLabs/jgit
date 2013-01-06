@@ -324,9 +324,7 @@ public class BatchRefUpdate {
 									"\033[31m\033[1m" + "push to refs/for/"
 											+ target + " instead" + "\033[0m");
 						} else {
-							final RefUpdate tru = RefUpdateTranslator
-									.translateRefUpdate(ru, userId);
-							cmd.setResult(tru.update(walk));
+							cmd.setResult(ru.update(walk, userId));
 						}
 						continue;
 					}

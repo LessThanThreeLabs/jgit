@@ -44,11 +44,15 @@
 
 package org.eclipse.jgit.lib;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.lang.reflect.Field;
 import java.text.MessageFormat;
 
 import org.eclipse.jgit.errors.MissingObjectException;
 import org.eclipse.jgit.internal.JGitText;
+import org.eclipse.jgit.lib.Ref.Storage;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevObject;
 import org.eclipse.jgit.revwalk.RevWalk;
@@ -496,6 +500,37 @@ public abstract class RefUpdate {
 	}
 
 	/**
+	 * Gracefully update the ref to the new value.
+	 * <p>
+	 * Merge test will be performed according to {@link #isForceUpdate()}.
+	 *
+	 * @param walk
+	 *            a RevWalk instance this update command can borrow to perform
+	 *            the merge test. The walk will be reset to perform the test.
+	 * @param userId
+	 *            added for use by koality
+	 * @return the result status of the update.
+	 * @throws IOException
+	 *             an unexpected IO error occurred while writing changes.
+	 */
+	public Result update(final RevWalk walk, long userId) throws IOException {
+		requireCanDoUpdate();
+		try {
+			return result = updateImpl(walk, new Store() {
+				@Override
+				Result execute(Result status) throws IOException {
+					if (status == Result.NO_CHANGE)
+						return status;
+					return doUpdate(status);
+				}
+			}, userId);
+		} catch (IOException x) {
+			result = Result.IO_FAILURE;
+			throw x;
+		}
+	}
+
+	/**
 	 * Delete the ref.
 	 * <p>
 	 * This is the same as:
@@ -601,12 +636,8 @@ public abstract class RefUpdate {
 		if (getRefDatabase().isNameConflicting(getName()))
 			return Result.LOCK_FAILURE;
 		try {
-			ObjectId trueOldValue = oldValue;
 			if (!tryLock(true))
 				return Result.LOCK_FAILURE;
-			if (getRef().getName().startsWith("refs/pending/")) {
-				oldValue = trueOldValue; // Pending refs are uniquely identified
-			}
 			if (expValue != null) {
 				final ObjectId o;
 				o = oldValue != null ? oldValue : ObjectId.zeroId();
@@ -631,6 +662,154 @@ public abstract class RefUpdate {
 			return Result.REJECTED;
 		} finally {
 			unlock();
+		}
+	}
+
+	private Result updateImpl(final RevWalk walk, final Store store,
+			final long userId) throws IOException {
+		RevObject newObj;
+		RevObject oldObj;
+		String refName = getName();
+		String targetRefName = getTargetRefName(refName);
+		oldValue = getRepository().getRef(targetRefName).getObjectId();
+		Ref originalRef = getRef();
+		if (originalRef.getName().startsWith("refs/force/")) {
+			setForceUpdate(true);
+		}
+
+		if (getRefDatabase().isNameConflicting(refName))
+			return Result.LOCK_FAILURE;
+		try {
+			Result preLockResult = getResult(walk);
+			if (preLockResult == Result.REJECTED) {
+				return Result.REJECTED;
+			}
+			translateRef(userId);
+			if (!tryLock(true))
+				return Result.LOCK_FAILURE;
+			if (expValue != null) {
+				final ObjectId o;
+				o = oldValue != null ? oldValue : ObjectId.zeroId();
+				if (!AnyObjectId.equals(expValue, o))
+					return Result.LOCK_FAILURE;
+			}
+
+			if (oldValue == null)
+				return store.execute(Result.NEW);
+
+			newObj = safeParse(walk, newValue);
+			oldObj = safeParse(walk, oldValue);
+			if (newObj == oldObj && !detachingSymbolicRef)
+				return store.execute(Result.NO_CHANGE);
+
+			if (newObj instanceof RevCommit && oldObj instanceof RevCommit) {
+				if (walk.isMergedInto((RevCommit) oldObj, (RevCommit) newObj))
+					return store.execute(Result.FAST_FORWARD);
+			}
+
+			if (isForceUpdate())
+				return store.execute(Result.FORCED);
+			return Result.REJECTED;
+		} finally {
+			unlock();
+		}
+	}
+
+	private String getTargetRefName(String refName) {
+		if (refName.startsWith("refs/for/")) {
+			return "refs/heads/" + refName.substring("refs/for/".length());
+		} else if (refName.startsWith("refs/force/")) {
+			return "refs/heads/" + refName.substring("refs/force/".length());
+		} else {
+			return refName;
+		}
+	}
+
+	private Result getResult(RevWalk walk) throws IOException {
+		if (oldValue == null)
+			return Result.NEW;
+
+		RevObject newObj = safeParse(walk, newValue);
+		RevObject oldObj = safeParse(walk, oldValue);
+		if (newObj == oldObj && !detachingSymbolicRef)
+			return Result.NO_CHANGE;
+
+		if (newObj instanceof RevCommit && oldObj instanceof RevCommit) {
+			if (walk.isMergedInto((RevCommit) oldObj, (RevCommit) newObj))
+				return Result.FAST_FORWARD;
+		}
+
+		if (isForceUpdate())
+			return Result.FORCED;
+		return Result.REJECTED;
+	}
+
+	private void translateRef(long userId) throws IOException {
+		final Ref originalRef = getRef();
+		if (originalRef.getName().startsWith("refs/for/")) {
+			final String commitMessage = new RevWalk(getRepository())
+					.parseCommit(getNewObjectId()).getFullMessage();
+			String targetRef = originalRef.getName().substring(
+					"refs/for/".length());
+			String output = getOutputForCommand(
+					"store-pending-and-trigger-build", userId, getRepository()
+							.getDirectory().getAbsolutePath(), commitMessage,
+					targetRef);
+			String newTargetRef = output;
+			ObjectId realObjectId = getRepository()
+					.getRef("refs/heads/" + targetRef).getObjectId();
+			setNewRef(new ObjectIdRef.Unpeeled(Storage.NEW, newTargetRef,
+					realObjectId));
+		} else {
+			getOutputForCommand(
+					"verify-repository-permissions", userId, getRepository()
+							.getDirectory().getAbsolutePath());
+			if (originalRef.getName().startsWith("refs/force/")) {
+				String newTargetRef = originalRef.getName().replace(
+						"refs/force/",
+						"refs/heads/");
+				setNewRef(new ObjectIdRef.Unpeeled(Storage.NEW, newTargetRef,
+						originalRef.getObjectId()));
+			}
+		}
+	}
+
+	private static String getOutputForCommand(String command, long userId,
+			String... args) {
+		String[] fullArgs = new String[2 + args.length];
+		fullArgs[0] = command;
+		fullArgs[1] = String.valueOf(userId);
+		for (int i = 0; i < args.length; i++) {
+			fullArgs[2 + i] = args[i];
+		}
+		ProcessBuilder pb = new ProcessBuilder(fullArgs);
+		try {
+			Process p = pb.start();
+			int returnCode = p.waitFor();
+			if (returnCode != 0) {
+				throw new IllegalArgumentException(String.valueOf(userId));
+			}
+			BufferedReader reader = new BufferedReader(new InputStreamReader(
+					p.getInputStream()));
+			return reader.readLine();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return null;
+	}
+
+	private void setNewRef(Ref newRef) throws IOException {
+		try {
+			Field refField = this.getClass().getDeclaredField("ref");
+			refField.setAccessible(true);
+			refField.set(this, newRef);
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new IOException(e);
 		}
 	}
 
