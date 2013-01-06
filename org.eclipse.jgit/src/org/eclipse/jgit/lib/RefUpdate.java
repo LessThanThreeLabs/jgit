@@ -47,7 +47,6 @@ package org.eclipse.jgit.lib;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.lang.reflect.Field;
 import java.text.MessageFormat;
 
 import org.eclipse.jgit.errors.MissingObjectException;
@@ -169,7 +168,7 @@ public abstract class RefUpdate {
 	/** Result of the update operation. */
 	private Result result = Result.NOT_ATTEMPTED;
 
-	private final Ref ref;
+	private Ref ref;
 
 	/**
 	 * Is this RefUpdate detaching a symbolic ref?
@@ -802,15 +801,8 @@ public abstract class RefUpdate {
 		return null;
 	}
 
-	private void setNewRef(Ref newRef) throws IOException {
-		try {
-			Field refField = this.getClass().getDeclaredField("ref");
-			refField.setAccessible(true);
-			refField.set(this, newRef);
-		} catch (Exception e) {
-			e.printStackTrace();
-			throw new IOException(e);
-		}
+	private void setNewRef(Ref newRef) {
+		ref = newRef;
 	}
 
 	private static RevObject safeParse(final RevWalk rw, final AnyObjectId id)
