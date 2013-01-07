@@ -670,11 +670,9 @@ public abstract class RefUpdate {
 		RevObject oldObj;
 		String refName = getName();
 		String targetRefName = getTargetRefName(refName);
-		oldValue = getRepository().getRef(targetRefName).getObjectId();
-		Ref originalRef = getRef();
-		if (originalRef.getName().startsWith("refs/force/")) {
-			setForceUpdate(true);
-		}
+		oldValue = getRepository().getRef(targetRefName) != null ? getRepository()
+				.getRef(targetRefName).getObjectId() : null;
+		setForceUpdate(getRef().getName().startsWith("refs/force/"));
 
 		if (getRefDatabase().isNameConflicting(refName))
 			return Result.LOCK_FAILURE;
@@ -755,8 +753,9 @@ public abstract class RefUpdate {
 							.getDirectory().getAbsolutePath(), commitMessage,
 					targetRef);
 			String newTargetRef = output;
-			ObjectId realObjectId = getRepository()
-					.getRef("refs/heads/" + targetRef).getObjectId();
+			ObjectId realObjectId = getRepository().getRef(
+					"refs/heads/" + targetRef) != null ? getRepository()
+					.getRef("refs/heads/" + targetRef).getObjectId() : null;
 			setNewRef(new ObjectIdRef.Unpeeled(Storage.NEW, newTargetRef,
 					realObjectId));
 		} else {
