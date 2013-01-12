@@ -768,6 +768,7 @@ public abstract class RefUpdate {
 						"refs/heads/");
 				setNewRef(new ObjectIdRef.Unpeeled(Storage.NEW, newTargetRef,
 						originalRef.getObjectId()));
+				setExpectedOldObjectId(null);
 			}
 		}
 	}
