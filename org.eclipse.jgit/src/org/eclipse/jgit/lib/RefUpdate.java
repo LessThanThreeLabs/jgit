@@ -696,6 +696,15 @@ public abstract class RefUpdate {
 
 			newObj = safeParse(walk, newValue);
 			oldObj = safeParse(walk, oldValue);
+
+			if (isForceUpdate()) {
+				Result retVal = store.execute(Result.FORCED);
+				getOutputForCommand("force-push", userId,
+						getRepository().getDirectory().getAbsolutePath(),
+						targetRefName.substring("refs/heads/".length()));
+				return retVal;
+			}
+
 			if (newObj == oldObj && !detachingSymbolicRef)
 				return store.execute(Result.NO_CHANGE);
 
@@ -704,8 +713,6 @@ public abstract class RefUpdate {
 					return store.execute(Result.FAST_FORWARD);
 			}
 
-			if (isForceUpdate())
-				return store.execute(Result.FORCED);
 			return Result.REJECTED;
 		} finally {
 			unlock();
