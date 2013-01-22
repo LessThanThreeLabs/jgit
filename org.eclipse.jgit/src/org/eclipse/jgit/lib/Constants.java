@@ -246,6 +246,14 @@ public final class Constants {
 	/** Prefix for notes refs */
 	public static final String R_NOTES = "refs/notes/";
 
+	/**************** KOALITY CONSTANTS ****************/
+	/** Prefix for Koality force refs */
+	public static final String R_FORCE = "refs/force/";
+
+	/** Prefix for Koality for refs */
+	public static final String R_FOR = "refs/for/";
+	/**************** END KOALITY CONSTANTS ************/
+
 	/** Standard notes ref */
 	public static final String R_NOTES_COMMITS = R_NOTES + "commits";
 

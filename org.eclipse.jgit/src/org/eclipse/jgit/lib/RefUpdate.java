@@ -583,6 +583,7 @@ public abstract class RefUpdate {
 		}
 	}
 
+
 	/**
 	 * Replace this reference with a symbolic reference to another reference.
 	 * <p>
@@ -672,7 +673,7 @@ public abstract class RefUpdate {
 		String targetRefName = getTargetRefName(refName);
 		oldValue = getRepository().getRef(targetRefName) != null ? getRepository()
 				.getRef(targetRefName).getObjectId() : null;
-		setForceUpdate(getRef().getName().startsWith("refs/force/"));
+		setForceUpdate(getRef().getName().startsWith(Constants.R_FORCE));
 
 		if (getRefDatabase().isNameConflicting(refName))
 			return Result.LOCK_FAILURE;
@@ -701,7 +702,7 @@ public abstract class RefUpdate {
 				Result retVal = store.execute(Result.FORCED);
 				getOutputForCommand("force-push", userId,
 						getRepository().getDirectory().getAbsolutePath(),
-						targetRefName.substring("refs/heads/".length()));
+						targetRefName.substring(Constants.R_HEADS.length()));
 				return retVal;
 			}
 
@@ -720,10 +721,12 @@ public abstract class RefUpdate {
 	}
 
 	private String getTargetRefName(String refName) {
-		if (refName.startsWith("refs/for/")) {
-			return "refs/heads/" + refName.substring("refs/for/".length());
-		} else if (refName.startsWith("refs/force/")) {
-			return "refs/heads/" + refName.substring("refs/force/".length());
+		if (refName.startsWith(Constants.R_FOR)) {
+			return Constants.R_HEADS
+					+ refName.substring(Constants.R_FOR.length());
+		} else if (refName.startsWith(Constants.R_FORCE)) {
+			return Constants.R_HEADS
+					+ refName.substring(Constants.R_FORCE.length());
 		} else {
 			return refName;
 		}
@@ -750,29 +753,28 @@ public abstract class RefUpdate {
 
 	private void translateRef(long userId) throws IOException {
 		final Ref originalRef = getRef();
-		if (originalRef.getName().startsWith("refs/for/")) {
+		if (originalRef.getName().startsWith(Constants.R_FOR)) {
 			final String commitMessage = new RevWalk(getRepository())
 					.parseCommit(getNewObjectId()).getFullMessage();
 			String targetRef = originalRef.getName().substring(
-					"refs/for/".length());
+					Constants.R_FOR.length());
 			String output = getOutputForCommand(
 					"store-pending-and-trigger-build", userId, getRepository()
 							.getDirectory().getAbsolutePath(), commitMessage,
 					targetRef);
 			String newTargetRef = output;
 			ObjectId realObjectId = getRepository().getRef(
-					"refs/heads/" + targetRef) != null ? getRepository()
-					.getRef("refs/heads/" + targetRef).getObjectId() : null;
+					Constants.R_HEADS + targetRef) != null ? getRepository()
+					.getRef(Constants.R_HEADS + targetRef).getObjectId() : null;
 			setNewRef(new ObjectIdRef.Unpeeled(Storage.NEW, newTargetRef,
 					realObjectId));
 		} else {
 			getOutputForCommand(
 					"verify-repository-permissions", userId, getRepository()
 							.getDirectory().getAbsolutePath());
-			if (originalRef.getName().startsWith("refs/force/")) {
+			if (originalRef.getName().startsWith(Constants.R_FORCE)) {
 				String newTargetRef = originalRef.getName().replace(
-						"refs/force/",
-						"refs/heads/");
+						Constants.R_FORCE, Constants.R_HEADS);
 				setNewRef(new ObjectIdRef.Unpeeled(Storage.NEW, newTargetRef,
 						originalRef.getObjectId()));
 				setExpectedOldObjectId(null);
