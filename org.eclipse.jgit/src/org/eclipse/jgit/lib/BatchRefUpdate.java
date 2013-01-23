@@ -310,7 +310,7 @@ public class BatchRefUpdate {
 					RefUpdate ru = newUpdate(cmd);
 					switch (cmd.getType()) {
 					case DELETE:
-						cmd.setResult(ru.delete(walk));
+						cmd.setResult(ru.delete(walk, userId));
 						continue;
 
 					case CREATE:

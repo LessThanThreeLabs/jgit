@@ -51,7 +51,6 @@ import java.text.MessageFormat;
 
 import org.eclipse.jgit.errors.MissingObjectException;
 import org.eclipse.jgit.internal.JGitText;
-import org.eclipse.jgit.lib.Ref.Storage;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevObject;
 import org.eclipse.jgit.revwalk.RevWalk;
@@ -583,6 +582,42 @@ public abstract class RefUpdate {
 		}
 	}
 
+	/**
+	 * Delete the ref.
+	 *
+	 * @param walk
+	 *            a RevWalk instance this delete command can borrow to perform
+	 *            the merge test. The walk will be reset to perform the test.
+	 * @param userId
+	 * @return the result status of the delete.
+	 * @throws IOException
+	 */
+	public Result delete(final RevWalk walk, final long userId)
+			throws IOException {
+		final String myName = getRef().getLeaf().getName();
+
+		if (myName.startsWith(Constants.R_HEADS)
+				|| myName.startsWith(Constants.R_FORCE)) {
+			Ref head = getRefDatabase().getRef(Constants.HEAD);
+			while (head.isSymbolic()) {
+				head = head.getTarget();
+				if (myName.equals(head.getName()))
+					return result = Result.REJECTED_CURRENT_BRANCH;
+			}
+		}
+
+		try {
+			return result = deleteImpl(walk, new Store() {
+				@Override
+				Result execute(Result status) throws IOException {
+					return doDelete(status);
+				}
+			}, userId);
+		} catch (IOException x) {
+			result = Result.IO_FAILURE;
+			throw x;
+		}
+	}
 
 	/**
 	 * Replace this reference with a symbolic reference to another reference.
@@ -700,9 +735,10 @@ public abstract class RefUpdate {
 
 			if (isForceUpdate()) {
 				Result retVal = store.execute(Result.FORCED);
-				getOutputForCommand("force-push", userId,
-						getRepository().getDirectory().getAbsolutePath(),
-						targetRefName.substring(Constants.R_HEADS.length()));
+				String target = targetRefName.substring(Constants.R_HEADS
+						.length());
+				getOutputForCommand("force-push", userId, getRepository()
+						.getDirectory().getAbsolutePath(), target, target);
 				return retVal;
 			}
 
@@ -712,6 +748,51 @@ public abstract class RefUpdate {
 			if (newObj instanceof RevCommit && oldObj instanceof RevCommit) {
 				if (walk.isMergedInto((RevCommit) oldObj, (RevCommit) newObj))
 					return store.execute(Result.FAST_FORWARD);
+			}
+
+			return Result.REJECTED;
+		} finally {
+			unlock();
+		}
+	}
+
+	/*
+	 * TODO: I don't know what the first part of this function does so it might
+	 * be dead code Everything after the if (isForceUpdate()) is necessary
+	 */
+	private Result deleteImpl(final RevWalk walk, final Store store,
+			final long userId) throws IOException {
+		String refName = getName();
+		String targetRefName = getTargetRefName(refName);
+		oldValue = getRepository().getRef(targetRefName) != null ? getRepository()
+				.getRef(targetRefName).getObjectId() : null;
+		setForceUpdate(getRef().getName().startsWith(Constants.R_FORCE));
+
+		if (getRefDatabase().isNameConflicting(refName))
+			return Result.LOCK_FAILURE;
+		try {
+			Result preLockResult = getResult(walk);
+			if (preLockResult == Result.REJECTED) {
+				return Result.REJECTED;
+			}
+			translateRef(userId);
+			if (!tryLock(true))
+				return Result.LOCK_FAILURE;
+			if (expValue != null) {
+				final ObjectId o;
+				o = oldValue != null ? oldValue : ObjectId.zeroId();
+				if (!AnyObjectId.equals(expValue, o))
+					return Result.LOCK_FAILURE;
+			}
+
+			assert oldValue != null;
+
+			if (isForceUpdate()) {
+				Result retVal = store.execute(Result.FORCED);
+				getOutputForCommand("force-push", userId, getRepository()
+						.getDirectory().getAbsolutePath(), "",
+						targetRefName.substring(Constants.R_HEADS.length()));
+				return retVal;
 			}
 
 			return Result.REJECTED;
@@ -759,14 +840,16 @@ public abstract class RefUpdate {
 			String targetRef = originalRef.getName().substring(
 					Constants.R_FOR.length());
 			String output = getOutputForCommand(
-					"store-pending-and-trigger-build", userId, getRepository()
+					"store-pending-and-trigger-build",
+					userId, getRepository()
 							.getDirectory().getAbsolutePath(), commitMessage,
 					targetRef);
 			String newTargetRef = output;
 			ObjectId realObjectId = getRepository().getRef(
 					Constants.R_HEADS + targetRef) != null ? getRepository()
 					.getRef(Constants.R_HEADS + targetRef).getObjectId() : null;
-			setNewRef(new ObjectIdRef.Unpeeled(Storage.NEW, newTargetRef,
+			setNewRef(new ObjectIdRef.Unpeeled(originalRef.getStorage(),
+					newTargetRef,
 					realObjectId));
 		} else {
 			getOutputForCommand(
@@ -775,7 +858,8 @@ public abstract class RefUpdate {
 			if (originalRef.getName().startsWith(Constants.R_FORCE)) {
 				String newTargetRef = originalRef.getName().replace(
 						Constants.R_FORCE, Constants.R_HEADS);
-				setNewRef(new ObjectIdRef.Unpeeled(Storage.NEW, newTargetRef,
+				setNewRef(new ObjectIdRef.Unpeeled(originalRef.getStorage(),
+						newTargetRef,
 						originalRef.getObjectId()));
 				setExpectedOldObjectId(null);
 			}

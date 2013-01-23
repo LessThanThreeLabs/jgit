@@ -144,7 +144,8 @@ public class RefDirectoryUpdate extends RefUpdate {
 
 	@Override
 	protected Result doDelete(final Result status) throws IOException {
-		if (getRef().getLeaf().getStorage() != Ref.Storage.NEW)
+		if (getRef().getLeaf().getStorage() != Ref.Storage.NEW
+				|| status == Result.FORCED)
 			database.delete(this);
 		return status;
 	}
