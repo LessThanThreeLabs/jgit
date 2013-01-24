@@ -726,18 +726,18 @@ public abstract class RefUpdate {
 					return Result.LOCK_FAILURE;
 			}
 
-			if (oldValue == null)
-				return store.execute(Result.NEW);
+			if (oldValue == null) {
+				Result retVal = store.execute(Result.NEW);
+				forcePushBranch(targetRefName, userId);
+				return retVal;
+			}
 
 			newObj = safeParse(walk, newValue);
 			oldObj = safeParse(walk, oldValue);
 
 			if (isForceUpdate()) {
 				Result retVal = store.execute(Result.FORCED);
-				String target = targetRefName.substring(Constants.R_HEADS
-						.length());
-				getOutputForCommand("force-push", userId, getRepository()
-						.getDirectory().getAbsolutePath(), target, target);
+				forcePushBranch(targetRefName, userId);
 				return retVal;
 			}
 
@@ -753,6 +753,12 @@ public abstract class RefUpdate {
 		} finally {
 			unlock();
 		}
+	}
+
+	private void forcePushBranch(String targetRefName, long userId) {
+		String target = targetRefName.substring(Constants.R_HEADS.length());
+		getOutputForCommand("force-push", userId, getRepository()
+				.getDirectory().getAbsolutePath(), target, target);
 	}
 
 	/*
