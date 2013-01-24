@@ -596,8 +596,7 @@ public abstract class RefUpdate {
 			throws IOException {
 		final String myName = getRef().getLeaf().getName();
 
-		if (myName.startsWith(Constants.R_HEADS)
-				|| myName.startsWith(Constants.R_FORCE)) {
+		if (myName.startsWith(Constants.R_HEADS)) {
 			Ref head = getRefDatabase().getRef(Constants.HEAD);
 			while (head.isSymbolic()) {
 				head = head.getTarget();
@@ -766,7 +765,8 @@ public abstract class RefUpdate {
 		String targetRefName = getTargetRefName(refName);
 		oldValue = getRepository().getRef(targetRefName) != null ? getRepository()
 				.getRef(targetRefName).getObjectId() : null;
-		setForceUpdate(getRef().getName().startsWith(Constants.R_FORCE));
+		setForceUpdate(isForceUpdate()
+				|| getRef().getName().startsWith(Constants.R_FORCE));
 
 		if (getRefDatabase().isNameConflicting(refName))
 			return Result.LOCK_FAILURE;
@@ -787,15 +787,11 @@ public abstract class RefUpdate {
 
 			assert oldValue != null;
 
-			if (isForceUpdate()) {
-				Result retVal = store.execute(Result.FORCED);
-				getOutputForCommand("force-push", userId, getRepository()
-						.getDirectory().getAbsolutePath(), "",
-						targetRefName.substring(Constants.R_HEADS.length()));
-				return retVal;
-			}
-
-			return Result.REJECTED;
+			Result retVal = store.execute(Result.FORCED);
+			getOutputForCommand("force-push", userId, getRepository()
+					.getDirectory().getAbsolutePath(), "",
+					targetRefName.substring(Constants.R_HEADS.length()));
+			return retVal;
 		} finally {
 			unlock();
 		}
