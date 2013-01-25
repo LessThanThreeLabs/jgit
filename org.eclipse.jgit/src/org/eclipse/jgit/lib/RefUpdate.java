@@ -44,8 +44,10 @@
 
 package org.eclipse.jgit.lib;
 
+import static org.eclipse.jgit.transport.SideBandOutputStream.CH_ERROR;
+import static org.eclipse.jgit.transport.SideBandOutputStream.SMALL_BUF;
+
 import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.text.MessageFormat;
@@ -797,27 +799,29 @@ public abstract class RefUpdate {
 
 			assert oldValue != null;
 
-			Result retVal = store.execute(Result.FORCED);
 			String output = getOutputForCommand("force-delete", userId,
 					getRepository().getDirectory().getAbsolutePath(),
 					targetRefName.substring(Constants.R_HEADS.length()));
-			if (output != null) {
-				RefUpdate.sideBandErrorOutput(output);
+			Result retVal;
+			try {
+				retVal = store.execute(Result.FORCED);
+			} catch (Exception e) {
+				retVal = output.isEmpty() ? Result.FORCED : Result.REJECTED;
+			}
+			if (!output.isEmpty()) {
+				SideBandOutputStream out = new SideBandOutputStream(CH_ERROR,
+						SMALL_BUF, System.out);
+				try {
+					out.write(Constants.encode(output));
+					out.flush();
+				} finally {
+					out.close();
+				}
 			}
 			return retVal;
 		} finally {
 			unlock();
 		}
-	}
-
-	private static void sideBandErrorOutput(String output) throws IOException {
-		ByteArrayOutputStream rawOut = new ByteArrayOutputStream();
-		final SideBandOutputStream out = new SideBandOutputStream(
-				SideBandOutputStream.CH_ERROR, SideBandOutputStream.SMALL_BUF,
-				rawOut);
-		out.write(output.getBytes());
-		out.flush();
-		out.close();
 	}
 
 	private String getTargetRefName(String refName) {
@@ -906,7 +910,7 @@ public abstract class RefUpdate {
 			String output = "";
 			String line = reader.readLine();
 			while (line != null) {
-				output += line;
+				output += line + "\n";
 				line = reader.readLine();
 			}
 			return output;
