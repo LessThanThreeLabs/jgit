@@ -45,6 +45,7 @@
 package org.eclipse.jgit.lib;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.text.MessageFormat;
@@ -54,6 +55,7 @@ import org.eclipse.jgit.internal.JGitText;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevObject;
 import org.eclipse.jgit.revwalk.RevWalk;
+import org.eclipse.jgit.transport.SideBandOutputStream;
 
 /**
  * Creates, updates or deletes any reference.
@@ -796,13 +798,26 @@ public abstract class RefUpdate {
 			assert oldValue != null;
 
 			Result retVal = store.execute(Result.FORCED);
-			getOutputForCommand("force-push", userId, getRepository()
-					.getDirectory().getAbsolutePath(), "",
+			String output = getOutputForCommand("force-delete", userId,
+					getRepository().getDirectory().getAbsolutePath(),
 					targetRefName.substring(Constants.R_HEADS.length()));
+			if (output != null) {
+				RefUpdate.sideBandErrorOutput(output);
+			}
 			return retVal;
 		} finally {
 			unlock();
 		}
+	}
+
+	private static void sideBandErrorOutput(String output) throws IOException {
+		ByteArrayOutputStream rawOut = new ByteArrayOutputStream();
+		final SideBandOutputStream out = new SideBandOutputStream(
+				SideBandOutputStream.CH_ERROR, SideBandOutputStream.SMALL_BUF,
+				rawOut);
+		out.write(output.getBytes());
+		out.flush();
+		out.close();
 	}
 
 	private String getTargetRefName(String refName) {
@@ -887,7 +902,14 @@ public abstract class RefUpdate {
 			}
 			BufferedReader reader = new BufferedReader(new InputStreamReader(
 					p.getInputStream()));
-			return reader.readLine();
+
+			String output = "";
+			String line = reader.readLine();
+			while (line != null) {
+				output += line;
+				line = reader.readLine();
+			}
+			return output;
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
