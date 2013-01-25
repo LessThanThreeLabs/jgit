@@ -728,7 +728,9 @@ public abstract class RefUpdate {
 
 			if (oldValue == null) {
 				Result retVal = store.execute(Result.NEW);
-				forcePushBranch(targetRefName, userId);
+				if (isForceUpdate()) {
+					forcePushBranch(targetRefName, userId);
+				}
 				return retVal;
 			}
 
