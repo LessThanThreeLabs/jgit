@@ -802,12 +802,6 @@ public abstract class RefUpdate {
 			String output = getOutputForCommand("force-delete", userId,
 					getRepository().getDirectory().getAbsolutePath(),
 					targetRefName.substring(Constants.R_HEADS.length()));
-			Result retVal;
-			try {
-				retVal = store.execute(Result.FORCED);
-			} catch (Exception e) {
-				retVal = output.isEmpty() ? Result.FORCED : Result.REJECTED;
-			}
 			if (!output.isEmpty()) {
 				SideBandOutputStream out = new SideBandOutputStream(CH_ERROR,
 						SMALL_BUF, System.out);
@@ -817,8 +811,9 @@ public abstract class RefUpdate {
 				} finally {
 					out.close();
 				}
+				return Result.REJECTED;
 			}
-			return retVal;
+			return Result.FORCED;
 		} finally {
 			unlock();
 		}
