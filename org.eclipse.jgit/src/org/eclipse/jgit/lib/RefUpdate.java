@@ -907,7 +907,7 @@ public abstract class RefUpdate {
 				output += line + "\n";
 				line = reader.readLine();
 			}
-			return output;
+			return output.trim(); // Some outputs can't have \n at the end
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
