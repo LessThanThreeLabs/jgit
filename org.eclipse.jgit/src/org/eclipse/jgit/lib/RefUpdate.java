@@ -798,25 +798,24 @@ public abstract class RefUpdate {
 			}
 
 			assert oldValue != null;
-
-			String output = getOutputForCommand("force-delete", userId,
-					getRepository().getDirectory().getAbsolutePath(),
-					targetRefName.substring(Constants.R_HEADS.length()));
-			if (!output.isEmpty()) {
-				SideBandOutputStream out = new SideBandOutputStream(CH_ERROR,
-						SMALL_BUF, System.out);
-				try {
-					out.write(Constants.encode(output));
-					out.flush();
-				} finally {
-					out.close();
-				}
-				return Result.REJECTED;
-			}
-			return Result.FORCED;
 		} finally {
 			unlock();
 		}
+		String output = getOutputForCommand("force-delete", userId,
+				getRepository().getDirectory().getAbsolutePath(),
+				targetRefName.substring(Constants.R_HEADS.length()));
+		if (!output.isEmpty()) {
+			SideBandOutputStream out = new SideBandOutputStream(CH_ERROR,
+					SMALL_BUF, System.out);
+			try {
+				out.write(Constants.encode(output));
+				out.flush();
+			} finally {
+				out.close();
+			}
+			return Result.REJECTED;
+		}
+		return Result.FORCED;
 	}
 
 	private String getTargetRefName(String refName) {
