@@ -852,15 +852,16 @@ public abstract class RefUpdate {
 	private void translateRef(long userId) throws IOException {
 		final Ref originalRef = getRef();
 		if (originalRef.getName().startsWith(Constants.R_FOR)) {
-			final String commitMessage = new RevWalk(getRepository())
-					.parseCommit(getNewObjectId()).getFullMessage();
+			RevCommit commit = new RevWalk(getRepository())
+					.parseCommit(getNewObjectId());
+			final String commitMessage = commit.getFullMessage();
+			final String sha = commit.getName();
 			String targetRef = originalRef.getName().substring(
 					Constants.R_FOR.length());
 			String output = getOutputForCommand(
-					"store-pending-and-trigger-build",
-					userId, getRepository()
+					"store-pending-and-trigger-build", userId, getRepository()
 							.getDirectory().getAbsolutePath(), commitMessage,
-					targetRef);
+					sha, targetRef);
 			String newTargetRef = output;
 			ObjectId realObjectId = getRepository().getRef(
 					Constants.R_HEADS + targetRef) != null ? getRepository()
