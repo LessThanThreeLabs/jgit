@@ -886,11 +886,12 @@ public abstract class RefUpdate {
 
 	private static String getOutputForCommand(String command, long userId,
 			String... args) {
-		String[] fullArgs = new String[2 + args.length];
-		fullArgs[0] = command;
-		fullArgs[1] = String.valueOf(userId);
+		String[] fullArgs = new String[3 + args.length];
+		fullArgs[0] = "/etc/koality/python";
+		fullArgs[1] = "/usr/bin/" + command;
+		fullArgs[2] = String.valueOf(userId);
 		for (int i = 0; i < args.length; i++) {
-			fullArgs[2 + i] = args[i];
+			fullArgs[3 + i] = args[i];
 		}
 		ProcessBuilder pb = new ProcessBuilder(fullArgs);
 		try {
