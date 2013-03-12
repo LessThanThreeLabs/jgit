@@ -323,6 +323,11 @@ public class BatchRefUpdate {
 									ReceiveCommand.Result.REJECTED_OTHER_REASON,
 									"\033[31m\033[1m" + "push to refs/for/"
 											+ target + " instead" + "\033[0m");
+						} else if (ru.getName().split("/").length == 2) {
+							cmd.setResult(
+									ReceiveCommand.Result.REJECTED_OTHER_REASON,
+									"\033[31m\033[1m" + "invalid refspec"
+											+ "\033[0m");
 						} else {
 							cmd.setResult(ru.update(walk, userId));
 						}
