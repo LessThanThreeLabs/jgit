@@ -47,7 +47,9 @@ package org.eclipse.jgit.lib;
 import static org.eclipse.jgit.transport.ReceiveCommand.Result.NOT_ATTEMPTED;
 import static org.eclipse.jgit.transport.ReceiveCommand.Result.REJECTED_OTHER_REASON;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -329,7 +331,16 @@ public class BatchRefUpdate {
 									"\033[31;1m" + "invalid refspec"
 											+ "\033[0m");
 						} else {
-							cmd.setResult(ru.update(walk, userId));
+							if (isDeploymentActivated()) {
+								cmd.setResult(ru.update(walk, userId));
+							} else {
+								cmd.setResult(
+										ReceiveCommand.Result.REJECTED_OTHER_REASON,
+										"\033[31;1m"
+												+ "Your license key is no longer valid and has been deactivated.\n"
+												+ "Please contact your system administrator to resolve the issue."
+												+ "\033[0m");
+							}
 						}
 						continue;
 					}
@@ -340,6 +351,37 @@ public class BatchRefUpdate {
 			}
 		}
 		update.endTask();
+	}
+
+	private static boolean isDeploymentActivated() {
+		String[] fullArgs = new String[2];
+		fullArgs[0] = "/etc/koality/python";
+		fullArgs[1] = "/usr/bin/is-deployment-active";
+		ProcessBuilder pb = new ProcessBuilder(fullArgs);
+		try {
+			Process p = pb.start();
+			int returnCode = p.waitFor();
+			if (returnCode != 0) {
+				throw new IllegalArgumentException("Something went wrong!");
+			}
+			BufferedReader reader = new BufferedReader(new InputStreamReader(
+					p.getInputStream()));
+
+			String output = "";
+			String line = reader.readLine();
+			while (line != null) {
+				output += line + "\n";
+				line = reader.readLine();
+			}
+			return Boolean.valueOf(output.trim()).booleanValue();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return false;
 	}
 
 	/**
