@@ -430,7 +430,8 @@ public abstract class RefUpdate {
 
 	private void requireCanDoUpdate() {
 		if (newValue == null)
-			throw new IllegalStateException(JGitText.get().aNewObjectIdIsRequired);
+			throw new IllegalStateException(
+					JGitText.get().aNewObjectIdIsRequired);
 	}
 
 	/**
@@ -636,7 +637,8 @@ public abstract class RefUpdate {
 	 */
 	public Result link(String target) throws IOException {
 		if (!target.startsWith(Constants.R_REFS))
-			throw new IllegalArgumentException(MessageFormat.format(JGitText.get().illegalArgumentNotA, Constants.R_REFS));
+			throw new IllegalArgumentException(MessageFormat.format(
+					JGitText.get().illegalArgumentNotA, Constants.R_REFS));
 		if (getRefDatabase().isNameConflicting(getName()))
 			return Result.LOCK_FAILURE;
 		try {
@@ -867,18 +869,15 @@ public abstract class RefUpdate {
 					Constants.R_HEADS + targetRef) != null ? getRepository()
 					.getRef(Constants.R_HEADS + targetRef).getObjectId() : null;
 			setNewRef(new ObjectIdRef.Unpeeled(originalRef.getStorage(),
-					newTargetRef,
-					realObjectId));
+					newTargetRef, realObjectId));
 		} else {
-			getOutputForCommand(
-					"verify-repository-permissions", userId, getRepository()
-							.getDirectory().getAbsolutePath());
+			getOutputForCommand("verify-repository-permissions", userId,
+					getRepository().getDirectory().getAbsolutePath());
 			if (originalRef.getName().startsWith(Constants.R_FORCE)) {
 				String newTargetRef = originalRef.getName().replace(
 						Constants.R_FORCE, Constants.R_HEADS);
 				setNewRef(new ObjectIdRef.Unpeeled(originalRef.getStorage(),
-						newTargetRef,
-						originalRef.getObjectId()));
+						newTargetRef, originalRef.getObjectId()));
 				setExpectedOldObjectId(null);
 			}
 		}
@@ -886,12 +885,11 @@ public abstract class RefUpdate {
 
 	private static String getOutputForCommand(String command, long userId,
 			String... args) {
-		String[] fullArgs = new String[3 + args.length];
-		fullArgs[0] = "/etc/koality/python";
-		fullArgs[1] = "/usr/bin/" + command;
-		fullArgs[2] = String.valueOf(userId);
+		String[] fullArgs = new String[2 + args.length];
+		fullArgs[0] = "/etc/koality/python/bin/" + command;
+		fullArgs[1] = String.valueOf(userId);
 		for (int i = 0; i < args.length; i++) {
-			fullArgs[3 + i] = args[i];
+			fullArgs[2 + i] = args[i];
 		}
 		ProcessBuilder pb = new ProcessBuilder(fullArgs);
 		try {
