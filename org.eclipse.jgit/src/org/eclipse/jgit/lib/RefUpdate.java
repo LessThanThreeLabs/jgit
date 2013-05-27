@@ -49,6 +49,7 @@ import static org.eclipse.jgit.transport.SideBandOutputStream.SMALL_BUF;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.text.MessageFormat;
 
@@ -898,15 +899,9 @@ public abstract class RefUpdate {
 			if (returnCode != 0) {
 				throw new IllegalArgumentException(String.valueOf(userId));
 			}
-			BufferedReader reader = new BufferedReader(new InputStreamReader(
-					p.getInputStream()));
 
-			String output = "";
-			String line = reader.readLine();
-			while (line != null) {
-				output += line + "\n";
-				line = reader.readLine();
-			}
+			String output = readStream(p.getInputStream());
+			System.err.println(readStream(p.getErrorStream()));
 			return output.trim(); // Some outputs can't have \n at the end
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -916,6 +911,17 @@ public abstract class RefUpdate {
 			e.printStackTrace();
 		}
 		return null;
+	}
+
+	private static String readStream(InputStream is) throws IOException {
+		BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+		String output = "";
+		String line = reader.readLine();
+		while (line != null) {
+			output += line + "\n";
+			line = reader.readLine();
+		}
+		return output;
 	}
 
 	private void setNewRef(Ref newRef) {
