@@ -323,10 +323,18 @@ public class BatchRefUpdate {
 									ReceiveCommand.Result.REJECTED_OTHER_REASON,
 									"\033[31m\033[1m" + "push to refs/for/"
 											+ target + " instead" + "\033[0m");
-						} else if (ru.getName().split("/").length == 2) {
+						} else if (ru.getName().split("/").length != 3) {
 							cmd.setResult(
 									ReceiveCommand.Result.REJECTED_OTHER_REASON,
 									"\033[31m\033[1m" + "invalid refspec"
+											+ "\033[0m");
+						} else if (ru.getName().toUpperCase().endsWith("/HEAD")
+								|| ru.getName().toUpperCase().endsWith("/FETCH_HEAD")
+								|| ru.getName().toUpperCase().endsWith("/ORIG_HEAD")) {
+							cmd.setResult(
+									ReceiveCommand.Result.REJECTED_OTHER_REASON,
+									"\033[31m\033[1m"
+											+ "invalid refspec (refs/for/HEAD)"
 											+ "\033[0m");
 						} else {
 							cmd.setResult(ru.update(walk, userId));
