@@ -861,10 +861,21 @@ public abstract class RefUpdate {
 			final String sha = commit.getName();
 			String targetRef = originalRef.getName().substring(
 					Constants.R_FOR.length());
-			String output = getOutputForCommand(
-					"store-pending-and-trigger-build", userId, getRepository()
-							.getDirectory().getAbsolutePath(), commitMessage,
-					sha, targetRef);
+
+			String output = "";
+			if (getOldObjectId() == null) {
+				output = getOutputForCommand("store-pending-and-trigger-build",
+						userId, getRepository().getDirectory()
+								.getAbsolutePath(), commitMessage, sha,
+						targetRef);
+			} else {
+				String baseSha = getOldObjectId().getName();
+				output = getOutputForCommand("store-pending-and-trigger-build",
+						userId, getRepository().getDirectory()
+								.getAbsolutePath(), commitMessage, sha,
+						targetRef, baseSha);
+			}
+
 			String newTargetRef = output;
 			ObjectId realObjectId = getRepository().getRef(
 					Constants.R_HEADS + targetRef) != null ? getRepository()
